@@ -1,0 +1,29 @@
+; Engine configuration file.
+; Open this folder in Godot 4.4 or newer (Project Manager > Import).
+
+config_version=5
+
+[application]
+
+config/name="Bending Arena"
+config/description="Third-person elemental arena duel (CSE 310 games module)."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.4", "Forward Plus")
+config/icon="res://icon.svg"
+
+[autoload]
+
+Controls="*res://scripts/controls.gd"
+
+[display]
+
+window/size/viewport_width=1600
+window/size/viewport_height=900
+
+[physics]
+
+common/physics_ticks_per_second=60
+
+[rendering]
+
+anti_aliasing/quality/msaa_3d=2

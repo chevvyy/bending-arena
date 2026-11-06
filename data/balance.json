@@ -1,0 +1,10 @@
+{
+	"_note": "Every tunable number lives here. Starting values from the Nov 3 roadmap; tune after playtests.",
+	"chi": { "max": 100, "regen_per_second": 10 },
+	"elements": {
+		"fire":  { "hp": 95,  "move_speed": 6.0 },
+		"water": { "hp": 100, "move_speed": 5.5 },
+		"earth": { "hp": 120, "move_speed": 4.7 },
+		"air":   { "hp": 85,  "move_speed": 6.8 }
+	}
+}
