@@ -60,20 +60,23 @@ func _test_skill_tree() -> void:
 	_check(Game.node_state("fire", "special") == "available", "first node is buyable")
 	_check(Game.buy("fire", "special"), "buy fire special")
 	_check(not Game.buy("fire", "ultimate"), "can't skip to ultimate")
-	Game.skill_points = 40
+	Game.skill_points = 60
+	var total_cost := 0
 	for element in Game.ELEMENTS:
-		for id in ["special", "basic_plus", "utility", "special_plus", "passive", "ultimate"]:
+		for node: Dictionary in Game.tree_nodes(element):
+			total_cost += int(node.get("cost", 1))
+			var id: String = node["id"]
 			if not Game.owns(element, id):
 				_check(Game.buy(element, id), "buy %s %s" % [element, id])
-	_check(Game.skill_points == 40 - 39, "points spent correctly (have %d)" % Game.skill_points)
+	_check(Game.skill_points == 60 - total_cost + 1, "points spent correctly (have %d)" % Game.skill_points)
 	var loadout := Game.player_loadout("water")
-	_check(loadout["slots"].size() == 4, "full water tree unlocks 4 slots")
+	_check(loadout["slots"].size() == Game.SLOTS.size(), "full water tree unlocks every slot")
 	_check(float(loadout["passive"].get("hp_mult", 1.0)) > 1.0, "water passive applies")
 	screen.call("_show_element", "earth")
 	await _wait(0.2)
 	_shot("skill_tree")
 	var refund := Game.reset_tree("air")
-	_check(refund == 10, "air reset refunds 10 (got %d)" % refund)
+	_check(refund == 13, "air reset refunds 13 (got %d)" % refund)
 	_check(Game.player_loadout("air")["slots"] == ["basic"], "air back to basic only")
 	# Save round trip.
 	Game.save_game()
@@ -93,7 +96,7 @@ func _test_training() -> void:
 	var player: Bender = main.get_node("Player")
 	var dummy: Node3D = main.get_node("RoundManager").get("opponent")
 	_check(dummy != null and dummy.is_in_group("targets"), "training spawns the dummy")
-	_check(player.abilities.size() == 4, "training unlocks every slot")
+	_check(player.abilities.size() == Game.SLOTS.size(), "training unlocks every slot")
 	_check(player.global_position.y > -0.5 and player.global_position.y < 4.0,
 		"player stands on the arena floor (y %.2f)" % player.global_position.y)
 	var start_hp: float = dummy.get("health").current
@@ -106,8 +109,13 @@ func _test_training() -> void:
 		player.apply_element(element, Game.player_loadout(element, true))
 		for slot in Game.SLOTS:
 			player.chi.refill()
-			player.use_slot(slot)
-		await _wait(1.5)
+			player.abilities[slot].reset_cooldown()
+			_check(player.use_slot(slot), "%s %s fires" % [element, slot])
+			if not shots_dir.is_empty():
+				await _wait(0.75 if slot == "ultimate" and element == "fire" else 0.22)
+				_shot("move_%s_%s" % [element, slot])
+			await _wait(0.6)
+		await _wait(0.5)
 	_check(player.element == "air", "element switching works")
 	print("SMOKE: training ok, dummy hp %.0f" % dummy.get("health").current)
 

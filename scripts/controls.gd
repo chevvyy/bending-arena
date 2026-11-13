@@ -11,6 +11,8 @@ const KEY_ACTIONS := {
 	"jump": [KEY_SPACE],
 	"sprint": [KEY_SHIFT],
 	"pause": [KEY_ESCAPE, KEY_P],
+	"ability_heavy": [KEY_E],
+	"ability_defense": [KEY_F],
 	"ability_utility": [KEY_Q],
 	"ability_ultimate": [KEY_R],
 	"toggle_help": [KEY_H],

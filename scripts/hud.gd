@@ -1,11 +1,12 @@
 extends CanvasLayer
-## Everything drawn over the 3D view: your HP and chi, the four ability slots
+## Everything drawn over the 3D view: your HP and chi, the six ability slots
 ## with cooldowns, the opponent's HP, round info, banners, crosshair and the
 ## end-of-match results. Built in code in _ready(); bind() hooks it to a fight.
 
-const SLOT_KEYS := {"basic": "LMB", "special": "RMB", "utility": "Q", "ultimate": "R"}
-const HELP_TEXT := "WASD move   Shift sprint   Space jump   Mouse aim\n" \
-		+ "LMB basic   RMB special   Q utility   R ultimate\n" \
+const SLOT_KEYS := {"basic": "LMB", "special": "RMB", "heavy": "E", "defense": "F",
+	"utility": "Q", "ultimate": "R"}
+const HELP_TEXT := "WASD move   Shift sprint   Space jump   Mouse aim (up and down too)\n" \
+		+ "LMB basic (3-hit combo)   RMB special   E heavy   F defense   Q utility   R ultimate\n" \
 		+ "Esc pause   H hide this help"
 const TRAINING_HELP := "\n1 2 3 4 switch element (training)"
 
@@ -75,9 +76,9 @@ func _build() -> void:
 	_chi_bar = UI.bar(Color(0.45, 0.55, 1.0), Vector2(280, 14))
 	bars.add_child(_chi_bar)
 
-	# Bottom centre: ability slots.
-	_slots_box = UI.hbox(10)
-	UI.place(_slots_box, Vector2(0.5, 1), Vector2(0, -18), Control.GROW_DIRECTION_BOTH, Control.GROW_DIRECTION_BEGIN)
+	# Bottom right: ability slots (clear of the HP and chi bars).
+	_slots_box = UI.hbox(8)
+	UI.place(_slots_box, Vector2(1, 1), Vector2(-18, -18), Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_BEGIN)
 	_root.add_child(_slots_box)
 
 	var crosshair := UI.label("+", 28)
@@ -186,7 +187,7 @@ func _rebuild_slots() -> void:
 	_slot_widgets.clear()
 	for slot: String in Game.SLOTS:
 		var card := UI.panel(Color(0.08, 0.07, 0.06, 0.78), 8)
-		card.custom_minimum_size = Vector2(150, 0)
+		card.custom_minimum_size = Vector2(142, 0)
 		_slots_box.add_child(card)
 		var box := UI.vbox(3)
 		card.add_child(box)
@@ -208,7 +209,7 @@ func _rebuild_slots() -> void:
 		else:
 			cost_text = "unlock in skill tree"
 		box.add_child(UI.label(cost_text, 12, UI.MUTED_COLOR))
-		var cd_bar := UI.bar(Balance.element_color(player.element).lightened(0.2), Vector2(134, 6))
+		var cd_bar := UI.bar(Balance.element_color(player.element).lightened(0.2), Vector2(126, 6))
 		box.add_child(cd_bar)
 		if ability == null:
 			card.modulate = Color(0.5, 0.5, 0.5, 0.7)

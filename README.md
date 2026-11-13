@@ -3,10 +3,32 @@
 A third-person elemental arena duel for the CSE 310 games module, built in
 **Godot 4 (GDScript)**. Pick fire, water, earth or air, fight an AI bender in
 best-of-3 rounds, earn skill points and spend them in each element's skill
-tree. Placeholder primitives only: capsules, boxes, spheres and cylinders, no
-imported models, animations or audio.
+tree. Each element has six moves (a three-hit basic combo plus five
+unlockable moves), every shot follows your aim up and down, and the fighters
+are stick figures with procedural animation. Everything is built from
+primitives and particles: no imported models, animations or audio.
 
-## Run it
+## Play without Godot
+
+The standalone builds need nothing installed:
+
+- **Windows:** run `BendingArena.exe`. If SmartScreen warns about an unknown
+  app, click **More info**, then **Run anyway**.
+- **Mac:** unzip `BendingArena-mac.zip` and open **Bending Arena.app**. It isn't
+  notarized by Apple, so the first time right-click it and choose **Open**
+  (on newer macOS: try to open it once, then **System Settings > Privacy &
+  Security > Open Anyway**). It runs natively on Apple Silicon and Intel.
+
+To make them yourself: install the Godot 4.4.1 export templates (Editor >
+Manage Export Templates), then **Project > Export** and pick "Windows Desktop"
+or "macOS" (the presets are in `export_presets.cfg`), or from a terminal:
+
+```
+godot --headless --path . --export-release "Windows Desktop" builds/BendingArena.exe
+godot --headless --path . --export-release "macOS" builds/BendingArena-mac.zip
+```
+
+## Run it in the editor
 
 1. Install Godot 4.4 or newer (standard build, not .NET) from godotengine.org.
    Tested with 4.4.1.
@@ -40,9 +62,11 @@ The first open builds the `.godot/` cache, which is git-ignored.
 | Move | W A S D or arrow keys (relative to the camera) |
 | Sprint | Shift |
 | Jump | Space |
-| Aim / orbit camera | Mouse (shots go toward the crosshair, with a light aim assist) |
-| Basic attack | Left mouse (hold to repeat) |
+| Aim / orbit camera | Mouse (shots go toward the crosshair, up and down too, with a light aim assist) |
+| Basic attack | Left mouse (hold to repeat; every third hit is a stronger finisher) |
 | Special | Right mouse |
+| Heavy | E |
+| Defense | F |
 | Utility | Q |
 | Ultimate | R |
 | Pause menu | Esc or P |
@@ -55,14 +79,14 @@ priority, so you can move them there whenever you like.
 
 ## The four elements
 
-| Element | HP | Basic (LMB) | Special (RMB) | Utility (Q) | Ultimate (R) |
-| --- | --- | --- | --- | --- | --- |
-| Fire | 90 | Fire Jab: fast bolt | Flame Fan: 5 bolts in a fan | Flame Dash: dash, can't be hit mid-dash | Inferno Ring: burst around you |
-| Water | 100 | Water Whip: short range, slows | Ice Spike: long range, nearly freezes | Healing Tide: heal 30 over 4 s | Tidal Wave: huge piercing wave |
-| Earth | 120 | Rock Throw: heavy arcing rock | Stone Wall: blocks shots for 6 s | Seismic Stomp: hits and slows nearby | Boulder Barrage: 3 big boulders |
-| Air | 95 | Air Blast: wide, close range, shoves | Gust Spiral: long, fast shove | Air Leap: big jump the way you move | Tornado: drags enemies in |
+| Element | HP | Basic (LMB) | Special (RMB) | Heavy (E) | Defense (F) | Utility (Q) | Ultimate (R) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Fire | 125 | Fire Jabs: jab, jab, flame kick (a burning crescent) | Flame Breath: cone of fire | Fireball: explodes on impact | Fire Ring: spin a ring of fire that burns and stops shots | Jet Dash: fire-propelled dash, can't be hit | Lightning: charge, then an instant bolt where you aim |
+| Water | 132 | Water Whip: lash, lash, wide water slice; slows | Ice Daggers: three fast shards | Ice Prison: freezes the target in place | Ice Wall | Healing Water: heal 30 over 4 s | Tidal Wave: rolls along the ground through everything |
+| Earth | 165 | Rock Throw: rocks pulled from the ground, third throw is three at once | Earth Column: pillar bursts up where you aim and launches | Fissure: line of spikes along the ground, knocks up and slows | Stone Wall | Rock Armor: stomp, then half damage for 5 s | Boulder Barrage: three boulders ripped out of the ground |
+| Air | 135 | Air Blast: short, wide, shoves; third blast shoves hard | Air Cannon: fast ball of air | Air Blade: thin slice that cuts through | Air Shield: sphere that stops shots and pushes enemies away | Air Scooter: ride a ball of air, faster with higher jumps | Tornado: drags enemies in |
 
-Specials, utilities and ultimates cost chi (the blue bar), which refills over
+Everything but the basic costs chi (the blue bar), which refills over
 time. Every number (damage, cooldowns, chi costs, speed, range, HP, round
 length, points, AI difficulty) lives in `data/balance.json`; the trees live in
 `data/skill_trees.json`. Change them there, no code needed.
@@ -82,6 +106,7 @@ length, points, AI difficulty) lives in `data/balance.json`; the trees live in
 
 ```
 project.godot
+export_presets.cfg      # Windows and macOS export settings
 data/
   balance.json          # every tunable number, and each ability's type and stats
   skill_trees.json      # six nodes per element: unlocks, stat mods, passives
@@ -104,9 +129,13 @@ scripts/
   player.gd             # keyboard/mouse, camera, crosshair aim
   ai_bender.gd          # feeds AiBrain into the shared body
   ai_brain.gd           # AI: range keeping, strafing, aim lead, move choice
+  stick_figure.gd       # the fighters' bodies and procedural animation
   health.gd, chi.gd     # HP and chi components with signals
-  abilities/            # Ability base + projectile, dash, area, heal, wall, tornado
-  projectile.gd, tornado.gd, effects.gd   # shots, the tornado, rings and damage numbers
+  abilities/            # Ability base + projectile, cone, beam, pillar, fissure,
+                        #   wall, shield, dash, boost, heal, area, tornado
+  projectile.gd         # shots and their looks (fire, water, ice, rock, air, wave)
+  fissure.gd, shield.gd, tornado.gd   # moving parts of those moves
+  effects.gd            # particles, lights, crescents, lightning, spikes, rings
   round_manager.gd      # rounds, clock, scoring, results, training mode
   hud.gd, pause_menu.gd, main_menu.gd, skill_tree.gd, ui.gd   # screens, built in code
 tests/
@@ -115,24 +144,42 @@ tests/
 
 How a move works: when you pick an element, `Bender.apply_element()` reads
 `elements.<element>.abilities` from `balance.json`, makes one ability node per
-slot your tree has unlocked (the `type` field picks the script), and applies
-the tree's stat mods on top. Each ability checks its cooldown and chi in
-`try_activate()` and then does its thing in `_activate()`. A hit is one
-Dictionary (`damage`, `direction`, `knockback`, `slow`, `slow_time`) passed to
-`take_hit()`.
+slot your tree has unlocked (the `type` field picks the script: projectile,
+cone, beam, pillar, fissure, wall, shield, dash, boost, heal, area or
+tornado), and applies the tree's stat mods on top. Each ability checks its
+cooldown and chi in `try_activate()` and then does its thing in `_activate()`.
+A hit is one Dictionary (`damage`, `direction`, `knockback`, `slow`,
+`slow_time`, `root_time`, `launch`) passed to `take_hit()`. A `combo` list on
+the basic makes it a chain; `look` picks how a shot is drawn (`projectile.gd`)
+and `anim` the pose the stick figure strikes.
+
+How the fighters work: `scripts/stick_figure.gd` builds the body from thin
+capsules (spine, arms, legs, head, glowing hands, an element-coloured band and
+sash) and poses every joint each frame: a fighting stance, a run cycle from
+the body's speed, a tuck in the air, and a short action pose (punch, kick,
+push, sweep, raise, stomp, spin, ride, channel, hit) blended on top when a move
+is used. Arms in punches and pushes follow the aim pitch.
+
+Effects are built in `scripts/effects.gd` from CPU particles, lights and
+generated meshes (crescents, the wave, lightning segments, spikes), so there
+are no textures or imported assets.
 
 How the camera works: `CameraPivot` turns left and right with the mouse,
 `SpringArm3D` tilts up and down and pulls the camera in when a wall is behind
 you, and the arm sits over your right shoulder (move `SpringArm3D` on X to change
-that). Shots go toward whatever is
-under the crosshair (a ray from the camera), flattened to the floor.
+that). Shots go from your chest toward whatever is under the crosshair (a ray
+from the camera), so aiming up or down sends them up or down. Ground moves
+(Earth Column, Fissure, walls, Tidal Wave, Tornado) use the flat part of the
+aim; Earth Column lands where the crosshair meets the floor.
 
 The AI: `AiBrain` thinks every `reaction` seconds (0.45 s on Easy, 0.15 s on
 Hard). Each element has a range it likes to fight at; it closes or backs off to
-that range, strafes, hops when stuck on a pillar, leads its shots, and uses its
-special, utility and ultimate when they make sense (heal when hurt, stomp when
-close, wall when it's losing a ranged fight). Difficulty also sets its aim
-error and which skill-tree nodes it has (Easy: special only; Hard: everything).
+that range, strafes, hops when stuck on a pillar, leads its shots (aiming at
+your chest, so jumping doesn't dodge everything), and uses its other moves when
+they make sense (shield or wall when your shots are incoming, heal or armor
+when hurt, scooter to close distance). Difficulty also sets its aim error and
+which skill-tree nodes it has (Easy: special only; Normal: special, heavy and
+utility; Hard: everything).
 
 Physics layers: 1 world, 2 benders, 3 targets. Projectiles watch all three.
 

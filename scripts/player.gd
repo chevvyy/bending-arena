@@ -7,6 +7,8 @@ extends Bender
 const SLOT_ACTIONS := {
 	"basic": "attack_basic",
 	"special": "attack_special",
+	"heavy": "ability_heavy",
+	"defense": "ability_defense",
 	"utility": "ability_utility",
 	"ultimate": "ability_ultimate",
 }
@@ -73,6 +75,8 @@ func _physics_process(delta: float) -> void:
 		# Point the camera where the autopilot aims, so recordings look right.
 		camera_pivot.global_rotation.y = lerp_angle(camera_pivot.global_rotation.y,
 			atan2(-brain.aim.x, -brain.aim.z), 4.0 * delta)
+		spring_arm.rotation.x = lerpf(spring_arm.rotation.x,
+			clampf(asin(clampf(brain.aim.y, -1.0, 1.0)) + deg_to_rad(start_pitch_degrees), -0.6, 0.3), 3.0 * delta)
 		return
 
 	# Movement is relative to where the camera looks, flattened onto the floor.
@@ -102,26 +106,49 @@ func reset_for_round() -> void:
 	spring_arm.rotation.x = deg_to_rad(start_pitch_degrees)
 
 
-## Flat direction toward whatever is under the crosshair (the camera sits over
-## your right shoulder, so this is not quite where the camera faces), nudged
-## onto the target when it is close to the crosshair.
+## Direction from your chest to whatever is under the crosshair, up and down
+## included (the camera sits over your right shoulder, so this is not quite
+## where the camera faces), nudged onto the target's chest when it is close
+## to the crosshair.
 func aim_direction() -> Vector3:
 	if brain != null:
 		return brain.aim
-	var forward := _crosshair_point() - global_position
-	forward.y = 0.0
+	var forward := _crosshair_point() - muzzle()
 	if forward.length() < 1.0:
-		forward = -camera_pivot.global_transform.basis.z
-		forward.y = 0.0
+		forward = -camera.global_transform.basis.z
 	forward = forward.normalized()
 	if target != null and is_instance_valid(target) \
 			and (not target.has_method("is_alive") or target.is_alive()):
-		var to_target := target.global_position - global_position
-		to_target.y = 0.0
+		var to_target := target.global_position + Vector3.UP * 1.0 - muzzle()
 		if to_target.length() > 0.5 \
 				and rad_to_deg(forward.angle_to(to_target.normalized())) < aim_assist_degrees:
 			return to_target.normalized()
 	return forward
+
+
+## Where the crosshair meets the floor, at most max_range away (Earth Column).
+func aim_point(max_range: float) -> Vector3:
+	if brain != null:
+		return brain.aim_point(max_range)
+	var from := camera.global_position
+	var dir := -camera.global_transform.basis.z
+	var point: Vector3
+	if dir.y < -0.02:
+		point = from + dir * (-from.y / dir.y)
+	else:
+		point = _crosshair_point()
+	var flat := Vector3(point.x - global_position.x, 0.0, point.z - global_position.z)
+	if target != null and is_instance_valid(target):
+		var to_target := Vector3(target.global_position.x - global_position.x, 0.0,
+			target.global_position.z - global_position.z)
+		# Aim assist: snap onto the target when the spot is close to them.
+		if Vector3(point.x, 0.0, point.z).distance_to(Vector3(target.global_position.x, 0.0,
+				target.global_position.z)) < 1.8:
+			flat = to_target
+	flat = flat.limit_length(max_range)
+	if flat.length() < 2.0:
+		flat = flat_aim() * 2.0
+	return Vector3(global_position.x + flat.x, 0.0, global_position.z + flat.z)
 
 
 ## The point in the world under the screen centre, up to 60 m away.
@@ -135,4 +162,4 @@ func _crosshair_point() -> Vector3:
 
 ## Dash the way you're pressing, or where you aim when standing still.
 func dash_direction() -> Vector3:
-	return _move_input if _move_input.length_squared() > 0.01 else aim_direction()
+	return _move_input if _move_input.length_squared() > 0.01 else flat_aim()

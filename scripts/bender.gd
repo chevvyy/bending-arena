@@ -2,8 +2,9 @@ class_name Bender
 extends CharacterBody3D
 ## Everything the player and the AI opponent share: element stats, HP and chi,
 ## the ability slots, movement physics, and reactions to hits (slow, knockback,
-## dash, healing). player.gd adds keyboard, mouse and camera; ai_bender.gd adds
-## the AI brain. Both just call move_with() and use_slot().
+## dash, healing, roots, armor, boosts). player.gd adds keyboard, mouse and
+## camera; ai_bender.gd adds the AI brain. Both just call move_with() and
+## use_slot(). The body is a StickFigure ($Model) that animates itself.
 
 signal element_changed(element: String)
 signal loadout_changed
@@ -16,10 +17,20 @@ const ABILITY_SCRIPTS := {
 	"heal": "res://scripts/abilities/heal_ability.gd",
 	"wall": "res://scripts/abilities/wall_ability.gd",
 	"tornado": "res://scripts/abilities/tornado_ability.gd",
+	"cone": "res://scripts/abilities/cone_ability.gd",
+	"beam": "res://scripts/abilities/beam_ability.gd",
+	"pillar": "res://scripts/abilities/pillar_ability.gd",
+	"fissure": "res://scripts/abilities/fissure_ability.gd",
+	"shield": "res://scripts/abilities/shield_ability.gd",
+	"boost": "res://scripts/abilities/boost_ability.gd",
 }
+## Height of the chest above the feet, where bending starts from.
+const MUZZLE_HEIGHT := 1.3
 
 @export_enum("fire", "water", "earth", "air") var element := "fire"
 @export var display_name := "Bender"
+## Colour of the stick figure's limbs (the element colour goes on the accents).
+@export var limb_color := Color(0.1, 0.1, 0.12)
 
 @export_group("Movement")
 @export var move_speed := 6.0
@@ -49,11 +60,16 @@ var _dash_time := 0.0
 var _invulnerable_time := 0.0
 var _heal_per_second := 0.0
 var _heal_time := 0.0
+var _root_time := 0.0
+var _armor := 0.0
+var _armor_time := 0.0
+var _armor_speed := 1.0
+var _boost_time := 0.0
+var _boost_mult := 1.0
+var _boost_jump := 1.0
 var _spawn := Transform3D.IDENTITY
-var _body_material: StandardMaterial3D
 
-@onready var model: Node3D = $Model
-@onready var body_mesh: MeshInstance3D = $Model/Body
+@onready var model: StickFigure = $Model
 @onready var health: Health = $Health
 @onready var chi: Chi = $Chi
 @onready var ability_root: Node = $Abilities
@@ -62,11 +78,6 @@ var _body_material: StandardMaterial3D
 func _ready() -> void:
 	add_to_group("benders")
 	_spawn = global_transform
-	_body_material = StandardMaterial3D.new()
-	_body_material.roughness = 0.6
-	_body_material.emission_enabled = true
-	_body_material.emission = Color.BLACK
-	body_mesh.material_override = _body_material
 	health.died.connect(_on_died)
 
 
@@ -81,7 +92,7 @@ func apply_element(new_element: String, loadout: Dictionary) -> void:
 	var hp := float(Balance.get_value("elements.%s.hp" % element, 100.0))
 	health.reset(hp * float(passive.get("hp_mult", 1.0)))
 	chi.configure(passive)
-	_body_material.albedo_color = Balance.element_color(element)
+	model.set_colors(Balance.element_color(element), limb_color)
 	_build_abilities(loadout)
 	element_changed.emit(element)
 
@@ -128,18 +139,20 @@ func can_act() -> bool:
 ## direction is flat and at most length 1.
 func move_with(direction: Vector3, sprint: bool, jump: bool, delta: float) -> void:
 	_tick_status(delta)
-	if not can_act():
+	if not can_act() or _root_time > 0.0:
 		direction = Vector3.ZERO
 		jump = false
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	elif jump:
-		velocity.y = jump_velocity
+		velocity.y = jump_velocity * (_boost_jump if _boost_time > 0.0 else 1.0)
 
 	if _dash_time > 0.0:
 		_walk = _dash_velocity
 	else:
-		var speed := (sprint_speed if sprint else move_speed) * (1.0 - _slow_amount)
+		var speed := (sprint_speed if sprint else move_speed) * (1.0 - _slow_amount) * _armor_speed
+		if _boost_time > 0.0:
+			speed *= _boost_mult
 		var accel := acceleration if is_on_floor() else acceleration * air_control
 		_walk = _walk.move_toward(direction * speed, accel * delta)
 	_knock = _knock.move_toward(Vector3.ZERO, 18.0 * delta)
@@ -164,6 +177,13 @@ func _tick_status(delta: float) -> void:
 	if _slow_time <= 0.0:
 		_slow_amount = 0.0
 	_invulnerable_time = maxf(_invulnerable_time - delta, 0.0)
+	_root_time = maxf(_root_time - delta, 0.0)
+	_boost_time = maxf(_boost_time - delta, 0.0)
+	if _armor_time > 0.0:
+		_armor_time -= delta
+		if _armor_time <= 0.0:
+			_armor = 0.0
+			_armor_speed = 1.0
 	if _dash_time > 0.0:
 		_dash_time -= delta
 		if _dash_time <= 0.0:
@@ -173,12 +193,20 @@ func _tick_status(delta: float) -> void:
 		health.heal(_heal_per_second * delta)
 
 
-## hit is a Dictionary: damage, direction, attacker, knockback, slow, slow_time.
+## hit is a Dictionary: damage, direction, attacker, knockback, slow, slow_time,
+## root_time (can't move) and launch (thrown upward).
 func take_hit(hit: Dictionary) -> void:
 	if not is_alive() or _invulnerable_time > 0.0:
 		return
-	var damage := float(hit.get("damage", 0.0))
+	var damage := float(hit.get("damage", 0.0)) * (1.0 - _armor)
 	health.take_damage(damage)
+	var root_time := float(hit.get("root_time", 0.0))
+	if root_time > 0.0 and is_alive():
+		root(root_time)
+		_ice_block(root_time)
+	var launch := float(hit.get("launch", 0.0))
+	if launch > 0.0:
+		velocity.y = maxf(velocity.y, launch * (1.0 - _armor * 0.5))
 	var slow := float(hit.get("slow", 0.0))
 	if slow > 0.0:
 		_slow_amount = clampf(maxf(_slow_amount, slow), 0.0, 0.9)
@@ -189,7 +217,9 @@ func take_hit(hit: Dictionary) -> void:
 		_knock += direction * knockback
 		if is_on_floor():
 			velocity.y = maxf(velocity.y, knockback * 0.3)
-	_flash(Color(1.0, 0.25, 0.2) if slow <= 0.0 else Color(0.5, 0.8, 1.0))
+	_flash(Color(1.0, 0.25, 0.2) if slow <= 0.0 and root_time <= 0.0 else Color(0.5, 0.8, 1.0))
+	if damage >= 6.0 and is_alive():
+		animate("hit")
 	if damage > 0.0:
 		Effects.number(get_parent(), global_position + Vector3.UP * 2.1,
 			str(roundi(damage)), Color(1.0, 0.85, 0.3))
@@ -205,6 +235,9 @@ func heal_over_time(amount: float, seconds: float) -> void:
 
 
 func dash(direction: Vector3, speed: float, seconds: float, up: float, invulnerable: bool) -> void:
+	direction.y = 0.0
+	if direction.length_squared() < 0.0001:
+		direction = facing()
 	_dash_velocity = direction.normalized() * speed
 	_dash_time = seconds
 	if up > 0.0:
@@ -218,6 +251,41 @@ func is_slowed() -> bool:
 	return _slow_amount > 0.0
 
 
+func is_rooted() -> bool:
+	return _root_time > 0.0
+
+
+## Can't move (still can bend) for `seconds`: ice prison, or channelling lightning.
+func root(seconds: float) -> void:
+	_root_time = maxf(_root_time, seconds)
+
+
+## Rock Armor: take `reduce` less damage and move at `speed_mult` for `seconds`.
+func armor_up(reduce: float, seconds: float, speed_mult: float) -> void:
+	_armor = clampf(reduce, 0.0, 0.9)
+	_armor_time = seconds
+	_armor_speed = speed_mult
+
+
+## Air Scooter: faster and higher jumps for `seconds`.
+func boost(seconds: float, speed_mult: float, jump_mult: float) -> void:
+	_boost_time = seconds
+	_boost_mult = speed_mult
+	_boost_jump = jump_mult
+
+
+## Plays an action pose on the stick figure, arms following the aim pitch.
+func animate(action: String, length := -1.0, hold := false) -> void:
+	model.play(action, aim_pitch(), length, hold)
+
+
+func _ice_block(seconds: float) -> void:
+	var block := Effects.mesh_instance(Effects.box(Vector3(1.0, 2.0, 1.0)),
+		Effects.mat(Color(0.75, 0.95, 1.0, 0.45), 0.8))
+	Effects.attach(self, block, seconds, Vector3(0, 0.95, 0))
+	Effects.shatter(get_parent(), global_position + Vector3.UP, Color(0.8, 0.95, 1.0), 0.8)
+
+
 ## Called by the round manager at the start of every round.
 func reset_for_round() -> void:
 	global_transform = _spawn
@@ -229,8 +297,14 @@ func reset_for_round() -> void:
 	_dash_time = 0.0
 	_invulnerable_time = 0.0
 	_heal_time = 0.0
+	_root_time = 0.0
+	_armor = 0.0
+	_armor_time = 0.0
+	_armor_speed = 1.0
+	_boost_time = 0.0
 	model.rotation = Vector3.ZERO
 	model.position = Vector3.ZERO
+	model.reset_pose()
 	health.reset()
 	chi.refill()
 	for ability: Ability in abilities.values():
@@ -248,9 +322,34 @@ func facing() -> Vector3:
 	return -model.global_transform.basis.z.normalized()
 
 
-## Flat direction abilities fire in. Player and AI override this.
+## Where shots start: chest height.
+func muzzle() -> Vector3:
+	return global_position + Vector3.UP * MUZZLE_HEIGHT
+
+
+## Direction abilities fire in, up and down included (normalized).
+## Player and AI override this.
 func aim_direction() -> Vector3:
 	return facing()
+
+
+## The aim flattened onto the floor, for moves that travel along the ground.
+func flat_aim() -> Vector3:
+	var d := aim_direction()
+	d.y = 0.0
+	return d.normalized() if d.length_squared() > 0.0001 else facing()
+
+
+## How far up or down the aim points, in radians (up is positive).
+func aim_pitch() -> float:
+	return asin(clampf(aim_direction().y, -1.0, 1.0))
+
+
+## A point on the floor where ground moves (Earth Column) land, at most
+## `max_range` away. Player and AI override this.
+func aim_point(max_range: float) -> Vector3:
+	var p := global_position + flat_aim() * max_range * 0.6
+	return Vector3(p.x, 0.0, p.z)
 
 
 ## Direction a dash goes. Player and AI override this.
@@ -258,16 +357,18 @@ func dash_direction() -> Vector3:
 	return facing()
 
 
-## Snap the body to face a direction (used when firing).
+## Snap the body to face a direction (used when firing). Only the flat part counts.
 func face(direction: Vector3) -> void:
-	if direction.length_squared() > 0.0001:
+	if Vector2(direction.x, direction.z).length_squared() > 0.0001:
 		model.rotation.y = atan2(-direction.x, -direction.z)
 
 
+func face_aim(direction: Vector3) -> void:
+	face(direction)
+
+
 func _flash(color: Color) -> void:
-	_body_material.emission = color
-	var tween := create_tween()
-	tween.tween_property(_body_material, "emission", Color.BLACK, 0.25)
+	model.flash(color)
 
 
 ## Knocked out: tip over. reset_for_round() stands the bender back up.

@@ -68,3 +68,18 @@ func _build_look(color: Color) -> void:
 		part.position = Vector3(0.15 * (i % 2), 0.55 + 1.0 * i, 0.0)
 		part.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_spin.add_child(part)
+	var swirl := Effects.emitter(Color(color, 0.7), Color(color, 0.0), {
+		"amount": 60, "lifetime": 0.8, "size": 0.25, "speed": Vector2(2.0, 4.0), "direction": Vector3.UP,
+		"spread": 25.0, "emit_radius": radius * 0.5, "gravity": Vector3(0, 2, 0), "local": true})
+	swirl.emitting = true
+	_spin.add_child(swirl)
+	var grit := Effects.emitter(Color(0.6, 0.5, 0.4), Color(0.45, 0.4, 0.35), {
+		"amount": 24, "lifetime": 1.0, "size": 0.14, "speed": Vector2(1.0, 3.0), "direction": Vector3.UP,
+		"spread": 40.0, "emit_radius": radius * 0.6, "gravity": Vector3(0, 1.5, 0), "solid": true, "local": true})
+	grit.emitting = true
+	_spin.add_child(grit)
+	var base := Effects.emitter(Color(0.72, 0.62, 0.48, 0.5), Color(0.7, 0.62, 0.5, 0.0), {
+		"amount": 30, "lifetime": 0.7, "size": 0.6, "speed": Vector2(1.0, 3.0), "spread": 80.0,
+		"direction": Vector3.UP, "emit_radius": radius * 0.7, "end_scale": 1.6})
+	base.emitting = true
+	add_child(base)

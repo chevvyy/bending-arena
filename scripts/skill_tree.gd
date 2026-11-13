@@ -72,7 +72,7 @@ func _build_ui() -> void:
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(hint)
 
-	_tree_box = UI.vbox(18)
+	_tree_box = UI.vbox(10)
 	_tree_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(_tree_box)
 
@@ -119,7 +119,7 @@ func _show_element(el: String) -> void:
 		_tree_box.add_child(row)
 		for node: Dictionary in tiers[tier]:
 			var id: String = node.get("id", "")
-			var b := UI.button("", _buy.bind(id), Balance.element_color(el), Vector2(300, 84))
+			var b := UI.button("", _buy.bind(id), Balance.element_color(el), Vector2(300, 68))
 			b.mouse_entered.connect(_describe.bind(node))
 			b.focus_entered.connect(_describe.bind(node))
 			row.add_child(b)

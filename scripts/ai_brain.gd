@@ -122,7 +122,10 @@ func _think(toward: Vector3, distance: float) -> void:
 	_pending.clear()
 	if randf() > use_chance:
 		return
-	for slot in ["ultimate", "special", "utility"]:
+	var slots := ["defense", "ultimate", "special", "heavy", "utility"]
+	if randf() < 0.5:
+		slots = ["defense", "ultimate", "heavy", "special", "utility"]
+	for slot in slots:
 		if body.has_slot(slot) and _wants(slot, distance, sees):
 			_pending.append(slot)
 			break
@@ -140,9 +143,21 @@ func _wants(slot: String, distance: float, sees: bool) -> bool:
 			return distance > 9.0
 		return distance < 3.5 or body.health.ratio() < 0.4
 	if ability is WallAbility:
-		return sees and distance > 6.0 and body.health.ratio() < 0.85 and randf() < 0.5
+		return sees and distance > 6.0 and (_incoming_shots() > 0 or body.health.ratio() < 0.6) \
+				and randf() < 0.5
 	if ability is AreaAbility:
 		return distance < ability.reach() * 0.8
+	if ability is ShieldAbility:
+		var stats := ability.stats
+		if float(stats.get("reduce", 0.0)) > 0.0:
+			return sees and distance < 12.0 and body.health.ratio() < 0.8
+		if float(stats.get("cast_radius", 0.0)) > 0.0 and distance < float(stats["cast_radius"]) * 0.8:
+			return true
+		return _incoming_shots() > 0 or (float(stats.get("push", 0.0)) > 0.0 and distance < 2.5)
+	if ability is BoostAbility:
+		return distance > 11.0 or (body.health.ratio() < 0.35 and distance < 6.0)
+	if ability is PillarAbility or ability is FissureAbility:
+		return sees and distance > 3.0 and distance < ability.reach() * 0.9
 	return sees and distance < ability.reach() * 0.85
 
 
@@ -151,8 +166,16 @@ func _in_reach(slot: String, distance: float) -> bool:
 	return ability != null and distance < ability.reach() * 0.95
 
 
-## Aims at where the target will be when a basic shot arrives, plus some error.
+## Aims at the target's chest where it will be when a basic shot arrives
+## (up and down too, so it hits jumpers), plus some error.
 func _aim_at(toward: Vector3, distance: float) -> void:
+	var point := _lead_point(distance) + Vector3.UP * 1.0 - body.muzzle()
+	var direction := point.normalized() if point.length() > 0.01 else toward
+	aim = direction.rotated(Vector3.UP, _aim_error)
+
+
+## Where the target will be (feet) by the time a basic shot gets there.
+func _lead_point(distance: float) -> Vector3:
 	var lead := Vector3.ZERO
 	var basic: Ability = body.abilities.get("basic")
 	if basic != null and target is CharacterBody3D:
@@ -160,10 +183,33 @@ func _aim_at(toward: Vector3, distance: float) -> void:
 		var target_velocity := (target as CharacterBody3D).velocity
 		target_velocity.y = 0.0
 		lead = target_velocity * (distance / speed)
-	var point := target.global_position + lead - body.global_position
-	point.y = 0.0
-	var direction := point.normalized() if point.length() > 0.01 else toward
-	aim = direction.rotated(Vector3.UP, _aim_error)
+	return target.global_position + lead
+
+
+## Floor point for ground moves: under the target, leading a little.
+func aim_point(max_range: float) -> Vector3:
+	if target == null or not is_instance_valid(target):
+		return body.global_position + body.facing() * max_range * 0.5
+	var point := target.global_position
+	if target is CharacterBody3D:
+		var v := (target as CharacterBody3D).velocity
+		point += Vector3(v.x, 0.0, v.z) * 0.3
+	var flat := Vector3(point.x - body.global_position.x, 0.0, point.z - body.global_position.z)
+	flat = flat.limit_length(max_range)
+	return Vector3(body.global_position.x + flat.x, 0.0, body.global_position.z + flat.z)
+
+
+## Enemy shots flying toward this bender and close to it.
+func _incoming_shots() -> int:
+	var count := 0
+	for node in body.get_tree().get_nodes_in_group("projectiles"):
+		var shot := node as Projectile
+		if shot == null or shot.shooter == body:
+			continue
+		var offset := body.global_position + Vector3.UP - shot.global_position
+		if offset.length() < 7.0 and shot.velocity.dot(offset) > 0.0:
+			count += 1
+	return count
 
 
 ## Walking into a pillar for a while: switch strafe direction and hop.

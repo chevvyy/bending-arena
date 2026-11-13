@@ -6,7 +6,7 @@ signal points_changed(points: int)
 signal tree_changed(element: String)
 
 const ELEMENTS: Array[String] = ["fire", "water", "earth", "air"]
-const SLOTS: Array[String] = ["basic", "special", "utility", "ultimate"]
+const SLOTS: Array[String] = ["basic", "special", "heavy", "defense", "utility", "ultimate"]
 const TREES_PATH := "res://data/skill_trees.json"
 const SAVE_PATH := "user://save.json"
 const SMOKE_SAVE_PATH := "user://smoke_save.json"

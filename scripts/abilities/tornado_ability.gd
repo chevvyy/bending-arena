@@ -7,8 +7,9 @@ const TornadoScript := preload("res://scripts/tornado.gd")
 
 
 func _activate() -> void:
-	var direction: Vector3 = user.aim_direction()
-	user.face(direction)
+	var direction: Vector3 = user.flat_aim()
+	user.face_aim(direction)
+	user.animate(str(stats.get("anim", "spin")))
 	var tornado: Node3D = TornadoScript.new()
 	user.get_parent().add_child(tornado)
 	tornado.setup(user, user.global_position + direction * 1.5, direction, stats)

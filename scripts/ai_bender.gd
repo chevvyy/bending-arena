@@ -33,5 +33,9 @@ func aim_direction() -> Vector3:
 	return brain.aim
 
 
+func aim_point(max_range: float) -> Vector3:
+	return brain.aim_point(max_range)
+
+
 func dash_direction() -> Vector3:
-	return brain.move if brain.move.length_squared() > 0.01 else brain.aim
+	return brain.move if brain.move.length_squared() > 0.01 else flat_aim()

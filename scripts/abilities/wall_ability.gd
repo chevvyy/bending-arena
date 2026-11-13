@@ -1,12 +1,15 @@
 class_name WallAbility
 extends Ability
-## Stone Wall: raises a slab of stone in front of the user that blocks movement
-## and shots for "duration" seconds, then sinks back into the floor.
+## Stone Wall and Ice Wall: raises a slab in front of the user that blocks
+## movement and shots for "duration" seconds, then sinks back into the floor.
+## "look": "ice" makes it translucent ice.
 
 
 func _activate() -> void:
-	var direction: Vector3 = user.aim_direction()
-	user.face(direction)
+	var direction: Vector3 = user.flat_aim()
+	user.face_aim(direction)
+	user.animate(str(stats.get("anim", "raise")))
+	var ice := str(stats.get("look", "stone")) == "ice"
 	var width := float(stats.get("width", 3.0))
 	var height := float(stats.get("height", 2.6))
 	var wall := StaticBody3D.new()
@@ -20,9 +23,11 @@ func _activate() -> void:
 	wall.add_child(collision)
 	var mesh := BoxMesh.new()
 	mesh.size = shape.size
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(str(stats.get("color", "#7d7064")))
-	material.roughness = 0.95
+	var color := Color(str(stats.get("color", "#7d7064")))
+	var material := Effects.mat(Color(color, 0.75) if ice else color, 0.5 if ice else 0.0)
+	if ice:
+		material.roughness = 0.1
+		material.metallic_specular = 1.0
 	mesh.material = material
 	var mesh_instance := MeshInstance3D.new()
 	mesh_instance.mesh = mesh
@@ -37,6 +42,11 @@ func _activate() -> void:
 	tween.tween_interval(float(stats.get("duration", 6.0)))
 	tween.tween_property(wall, "global_position:y", -height, 0.3)
 	tween.tween_callback(wall.queue_free)
+	if ice:
+		Effects.shatter(user.get_parent(), Vector3(spot.x, 0.5, spot.z), color, 1.2)
+		Effects.splash(user.get_parent(), Vector3(spot.x, 0.2, spot.z), color, 1.2)
+	else:
+		Effects.debris(user.get_parent(), Vector3(spot.x, 0.2, spot.z), color, 1.3)
 
 
 func reach() -> float:
