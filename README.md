@@ -8,6 +8,8 @@ unlockable moves), every shot follows your aim up and down, and the fighters
 are stick figures with procedural animation. Everything is built from
 primitives and particles: no imported models, animations or audio.
 
+**Demo video:** (add the link here after recording)
+
 ## Play without Godot
 
 The standalone builds need nothing installed:
@@ -99,7 +101,7 @@ length, points, AI difficulty) lives in `data/balance.json`; the trees live in
 | At least 1 un-movable object | Arena walls, stone pillars and Stone Walls (`StaticBody3D`) |
 | At least 1 movable object | The player and the AI opponent (`CharacterBody3D`), projectiles, tornadoes |
 | Collisions of at least 2 objects | Benders against floor, walls, pillars and each other (`move_and_slide`); projectiles hitting benders, the dummy and walls (`Area3D.body_entered`) |
-| Keyboard or mouse input | WASD, Shift, Space, Q, R, Esc, mouse look and mouse buttons |
+| Keyboard or mouse input | WASD, Shift, Space, E, F, Q, R, Esc, mouse look and mouse buttons |
 | Stretch: save and load | `scripts/game.gd` saves skill points and unlocks to `user://save.json` and loads them at startup |
 
 ## How it's built
@@ -198,6 +200,14 @@ It prints `SMOKE: PASS` and exits 0, or lists what failed and exits 1. It uses
 its own save file, so your progress is untouched. `--quick` plays one match
 instead of four; `--balance` plays every element against every other and
 prints round wins, which is how the starting numbers were tuned.
+
+## Future work
+
+- Sound effects and music (CC0 or original)
+- Local two-player split screen or online play
+- More arenas, with terrain each element can use (water pools, loose rock)
+- Controller support and rebindable keys in an options menu
+- Signed and notarized builds so Windows and macOS don't warn on first launch
 
 ## Assets and IP
 
