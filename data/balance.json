@@ -1,10 +1,67 @@
 {
-	"_note": "Every tunable number lives here. Starting values from the Nov 3 roadmap; tune after playtests.",
-	"chi": { "max": 100, "regen_per_second": 10 },
+	"_note": "Every tunable number lives here. Abilities are built from these entries at runtime, so balance changes never need code.",
+	"chi": { "max": 100, "regen_per_second": 12 },
+	"round": { "seconds": 90, "rounds_to_win": 2, "intermission": 2.5 },
+	"points": { "start": 3, "round_win": 1, "match_win": 2 },
 	"elements": {
-		"fire":  { "hp": 95,  "move_speed": 6.0 },
-		"water": { "hp": 100, "move_speed": 5.5 },
-		"earth": { "hp": 120, "move_speed": 4.7 },
-		"air":   { "hp": 85,  "move_speed": 6.8 }
+		"fire": {
+			"display": "Firebender", "hp": 90, "move_speed": 6.0, "color": "#d9532b",
+			"abilities": {
+				"basic": { "type": "projectile", "name": "Fire Jab", "damage": 7.5, "cooldown": 0.35, "chi_cost": 0,
+					"speed": 24, "range": 22, "radius": 0.2, "color": "#ff6a2a" },
+				"special": { "type": "projectile", "name": "Flame Fan", "damage": 7, "cooldown": 4.0, "chi_cost": 25,
+					"speed": 20, "range": 14, "radius": 0.25, "color": "#ffa040", "count": 5, "spread_degrees": 40 },
+				"utility": { "type": "dash", "name": "Flame Dash", "cooldown": 5.0, "chi_cost": 20,
+					"dash_speed": 20, "dash_time": 0.22, "up": 0, "invulnerable": true, "color": "#ff8a3a" },
+				"ultimate": { "type": "area", "name": "Inferno Ring", "damage": 28, "cooldown": 18.0, "chi_cost": 60,
+					"radius": 6.0, "knockback": 10, "color": "#ff4a10" }
+			}
+		},
+		"water": {
+			"display": "Waterbender", "hp": 100, "move_speed": 5.5, "color": "#2f7fd1",
+			"abilities": {
+				"basic": { "type": "projectile", "name": "Water Whip", "damage": 9, "cooldown": 0.5, "chi_cost": 0,
+					"speed": 18, "range": 12, "radius": 0.3, "color": "#3aa7ff", "slow": 0.2, "slow_time": 1.0 },
+				"special": { "type": "projectile", "name": "Ice Spike", "damage": 14, "cooldown": 5.0, "chi_cost": 25,
+					"speed": 26, "range": 24, "radius": 0.22, "color": "#c8f0ff", "slow": 0.8, "slow_time": 1.2 },
+				"utility": { "type": "heal", "name": "Healing Tide", "cooldown": 12.0, "chi_cost": 35,
+					"amount": 30, "duration": 4.0, "color": "#5fe0c8" },
+				"ultimate": { "type": "projectile", "name": "Tidal Wave", "damage": 26, "cooldown": 18.0, "chi_cost": 60,
+					"speed": 12, "range": 22, "radius": 1.6, "color": "#1f6fe0", "knockback": 12, "pierce": true }
+			}
+		},
+		"earth": {
+			"display": "Earthbender", "hp": 120, "move_speed": 4.7, "color": "#5e8a3a",
+			"abilities": {
+				"basic": { "type": "projectile", "name": "Rock Throw", "damage": 13, "cooldown": 0.7, "chi_cost": 0,
+					"speed": 14.5, "range": 20, "radius": 0.45, "color": "#8a6a45", "gravity": 3.0, "launch_up": 1.5 },
+				"special": { "type": "wall", "name": "Stone Wall", "cooldown": 7.0, "chi_cost": 20,
+					"distance": 2.5, "duration": 6.0, "width": 3.0, "height": 2.6, "color": "#7d7064" },
+				"utility": { "type": "area", "name": "Seismic Stomp", "damage": 12, "cooldown": 8.0, "chi_cost": 25,
+					"radius": 5.0, "knockback": 4, "slow": 0.5, "slow_time": 1.5, "color": "#a07850" },
+				"ultimate": { "type": "projectile", "name": "Boulder Barrage", "damage": 18, "cooldown": 18.0, "chi_cost": 60,
+					"speed": 15, "range": 24, "radius": 0.6, "color": "#6e5236", "gravity": 3.0, "launch_up": 1.5,
+					"count": 3, "spread_degrees": 24 }
+			}
+		},
+		"air": {
+			"display": "Airbender", "hp": 95, "move_speed": 6.8, "color": "#e6d38a",
+			"abilities": {
+				"basic": { "type": "projectile", "name": "Air Blast", "damage": 7, "cooldown": 0.3, "chi_cost": 0,
+					"speed": 18, "range": 8, "radius": 0.9, "color": "#e8f4ff", "knockback": 9, "pierce": true },
+				"special": { "type": "projectile", "name": "Gust Spiral", "damage": 10, "cooldown": 4.0, "chi_cost": 20,
+					"speed": 28, "range": 26, "radius": 0.35, "color": "#f4fbff", "knockback": 14 },
+				"utility": { "type": "dash", "name": "Air Leap", "cooldown": 5.0, "chi_cost": 15,
+					"dash_speed": 12, "dash_time": 0.3, "up": 9, "invulnerable": false, "color": "#ffffff" },
+				"ultimate": { "type": "tornado", "name": "Tornado", "cooldown": 18.0, "chi_cost": 60,
+					"damage": 3, "tick": 0.25, "duration": 3.5, "speed": 6, "radius": 3.0, "pull": 5, "color": "#dfe8ee" }
+			}
+		}
+	},
+	"ai": {
+		"easy":   { "reaction": 0.45, "aim_error_degrees": 12, "fire_chance": 0.55, "use_chance": 0.35, "nodes": ["special"] },
+		"normal": { "reaction": 0.28, "aim_error_degrees": 6, "fire_chance": 0.8, "use_chance": 0.6,
+			"nodes": ["special", "basic_plus", "utility"] },
+		"hard":   { "reaction": 0.15, "aim_error_degrees": 2.5, "fire_chance": 1.0, "use_chance": 0.9, "nodes": ["all"] }
 	}
 }

@@ -6,19 +6,30 @@ config_version=5
 [application]
 
 config/name="Bending Arena"
-config/description="Third-person elemental arena duel (CSE 310 games module)."
-run/main_scene="res://scenes/main.tscn"
+config/description="Third-person elemental arena duel with skill trees and an AI opponent (CSE 310 games module)."
+run/main_scene="res://scenes/menu.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
 Controls="*res://scripts/controls.gd"
+Balance="*res://scripts/balance.gd"
+Game="*res://scripts/game.gd"
 
 [display]
 
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
 window/size/viewport_width=1600
 window/size/viewport_height=900
+
+[layer_names]
+
+3d_physics/layer_1="world"
+3d_physics/layer_2="benders"
+3d_physics/layer_3="targets"
 
 [physics]
 

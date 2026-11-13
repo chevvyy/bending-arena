@@ -1,17 +1,14 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/health.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/chi.gd" id="3_chi"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.4
 height = 1.8
 
-[sub_resource type="StandardMaterial3D" id="Material_body"]
-albedo_color = Color(0.23, 0.55, 0.85, 1)
-roughness = 0.6
-
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_body"]
-material = SubResource("Material_body")
 radius = 0.4
 height = 1.8
 
@@ -22,8 +19,20 @@ albedo_color = Color(0.95, 0.85, 0.4, 1)
 material = SubResource("Material_nose")
 size = Vector3(0.3, 0.15, 0.3)
 
+[sub_resource type="StandardMaterial3D" id="Material_band"]
+albedo_color = Color(0.95, 0.95, 0.95, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_band"]
+material = SubResource("Material_band")
+top_radius = 0.42
+bottom_radius = 0.42
+height = 0.12
+
 [node name="Player" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 7
 script = ExtResource("1_player")
+display_name = "You"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
@@ -39,10 +48,23 @@ mesh = SubResource("CapsuleMesh_body")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.45, -0.4)
 mesh = SubResource("BoxMesh_nose")
 
+[node name="Band" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, 0)
+mesh = SubResource("CylinderMesh_band")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+
+[node name="Chi" type="Node" parent="."]
+script = ExtResource("3_chi")
+
+[node name="Abilities" type="Node" parent="."]
+
 [node name="CameraPivot" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.9, 0)
 
 [node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8, 0, 0)
 spring_length = 4.5
 margin = 0.2
 

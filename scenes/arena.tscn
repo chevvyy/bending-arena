@@ -68,6 +68,12 @@ height = 22.0
 radial_segments = 7
 rings = 1
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_barrier_long"]
+size = Vector3(42, 30, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_barrier_side"]
+size = Vector3(1, 30, 40)
+
 [node name="Arena" type="Node3D"]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
@@ -79,7 +85,7 @@ light_energy = 1.1
 shadow_enabled = true
 
 [node name="Floor" type="StaticBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
 shape = SubResource("BoxShape3D_floor")
@@ -90,7 +96,7 @@ mesh = SubResource("BoxMesh_floor")
 [node name="Walls" type="Node3D" parent="."]
 
 [node name="North" type="StaticBody3D" parent="Walls"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.0, -20.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -20.5)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Walls/North"]
 shape = SubResource("BoxShape3D_wall_long")
@@ -99,7 +105,7 @@ shape = SubResource("BoxShape3D_wall_long")
 mesh = SubResource("BoxMesh_wall_long")
 
 [node name="South" type="StaticBody3D" parent="Walls"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.0, 20.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 20.5)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Walls/South"]
 shape = SubResource("BoxShape3D_wall_long")
@@ -108,7 +114,7 @@ shape = SubResource("BoxShape3D_wall_long")
 mesh = SubResource("BoxMesh_wall_long")
 
 [node name="West" type="StaticBody3D" parent="Walls"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.5, 8.0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.5, 1.5, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Walls/West"]
 shape = SubResource("BoxShape3D_wall_side")
@@ -117,7 +123,7 @@ shape = SubResource("BoxShape3D_wall_side")
 mesh = SubResource("BoxMesh_wall_side")
 
 [node name="East" type="StaticBody3D" parent="Walls"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.5, 8.0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.5, 1.5, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Walls/East"]
 shape = SubResource("BoxShape3D_wall_side")
@@ -125,19 +131,45 @@ shape = SubResource("BoxShape3D_wall_side")
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Walls/East"]
 mesh = SubResource("BoxMesh_wall_side")
 
+[node name="Barriers" type="Node3D" parent="."]
+
+[node name="NorthBarrier" type="StaticBody3D" parent="Barriers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15, -20.5)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Barriers/NorthBarrier"]
+shape = SubResource("BoxShape3D_barrier_long")
+
+[node name="SouthBarrier" type="StaticBody3D" parent="Barriers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15, 20.5)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Barriers/SouthBarrier"]
+shape = SubResource("BoxShape3D_barrier_long")
+
+[node name="WestBarrier" type="StaticBody3D" parent="Barriers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.5, 15, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Barriers/WestBarrier"]
+shape = SubResource("BoxShape3D_barrier_side")
+
+[node name="EastBarrier" type="StaticBody3D" parent="Barriers"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.5, 15, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Barriers/EastBarrier"]
+shape = SubResource("BoxShape3D_barrier_side")
+
 [node name="Pillars" type="Node3D" parent="."]
 
 [node name="StonePillar1" parent="Pillars" instance=ExtResource("1_pillar")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 8.0, -8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, -8)
 
 [node name="StonePillar2" parent="Pillars" instance=ExtResource("1_pillar")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 8.0, -8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, -8)
 
 [node name="StonePillar3" parent="Pillars" instance=ExtResource("1_pillar")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 8.0, 8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 0, 8)
 
 [node name="StonePillar4" parent="Pillars" instance=ExtResource("1_pillar")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 8.0, 8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 8)
 
 [node name="Backdrop" type="Node3D" parent="."]
 
