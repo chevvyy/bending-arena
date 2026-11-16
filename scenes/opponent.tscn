@@ -1,0 +1,41 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/ai_bender.gd" id="1_ai"]
+[ext_resource type="Script" path="res://scripts/health.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/chi.gd" id="3_chi"]
+[ext_resource type="Script" path="res://scripts/stick_figure.gd" id="4_figure"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
+radius = 0.4
+height = 1.8
+
+[node name="Opponent" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 7
+script = ExtResource("1_ai")
+display_name = "Opponent"
+limb_color = Color(0.3, 0.09, 0.07, 1)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("CapsuleShape3D_body")
+
+[node name="Model" type="Node3D" parent="."]
+script = ExtResource("4_figure")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("2_health")
+
+[node name="Chi" type="Node" parent="."]
+script = ExtResource("3_chi")
+
+[node name="Abilities" type="Node" parent="."]
+
+[node name="NameLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.35, 0)
+billboard = 1
+no_depth_test = true
+pixel_size = 0.004
+font_size = 48
+outline_size = 10
+text = "Opponent"
